@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Redis - Task Queue and Cache
+  redis:
+    image: redis:7-alpine
+    container_name: reading_list_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - reading_list_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL Database (Neon alternative for local development)
+  # Note: In production, use managed Neon database
+  # For local development, you can use this PostgreSQL container
+  postgres:
+    image: postgres:15-alpine
+    container_name: reading_list_postgres
+    environment:
+      POSTGRES_USER: reading_list_user
+      POSTGRES_PASSWORD: reading_list_password
+      POSTGRES_DB: reading_list
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - reading_list_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reading_list_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Prometheus - Monitoring (Optional)
+  # Remove this service if monitoring is not needed
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: reading_list_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - reading_list_network
+
+  # Grafana - Visualization (Optional)
+  # Remove this service if visualization is not needed
+  grafana:
+    image: grafana/grafana:latest
+    container_name: reading_list_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - reading_list_network
+    depends_on:
+      - prometheus
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  reading_list_network:
+    driver: bridge
+
+# TODO: Additional services to add:
+# 1. MongoDB (if using MongoDB instead of PostgreSQL)
+# 2. pgAdmin (for PostgreSQL management UI)
+# 3. Redis Commander (for Redis management UI)
+# 4. Celery Flower (for monitoring Celery tasks)
+
+# Usage:
+# Start all services: docker-compose up -d
+# Stop all services: docker-compose down
+# View logs: docker-compose logs -f [service_name]
+# Remove volumes: docker-compose down -v

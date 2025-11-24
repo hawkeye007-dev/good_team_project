@@ -1,3 +1,14 @@
+
+# ---------------------------------------------------------------------------
+# TEAM INTEGRATION SUMMARY:
+# This script is modular for easy integration:
+# - Reads input from a .txt file, splits by delimiter.
+# - Summarizes each part using OpenRouter API.
+# - Writes all summaries to an output .txt file (one per part, clearly separated).
+# - MongoDB saving is optional (toggle with SAVE_TO_MONGODB flag).
+# - All logic is modular for easy integration with other team modules.
+# ---------------------------------------------------------------------------
+
 import os
 import datetime
 from openai import OpenAI
@@ -35,6 +46,15 @@ def read_file_parts(filepath, delimiter="###"):
     parts = [p.strip() for p in content.split(delimiter) if p.strip()]
     return parts
 
+def write_summaries_to_txt(summaries, output_file, delimiter="\n---SUMMARY END---\n"):
+    """
+    Writes a list of summaries to a .txt file, separated by a delimiter.
+    Each summary is labeled with its part number for clarity.
+    """
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for i, summary in enumerate(summaries, 1):
+            f.write(f"Summary for Part {i}:\n{summary}{delimiter}")
+
 def summarize_text(text_to_summarize, client, model_name):
     """Summarizes the provided text using the OpenRouter API."""
     
@@ -55,27 +75,19 @@ def summarize_text(text_to_summarize, client, model_name):
 
 # --- Main Execution ---
 if __name__ == "__main__":
-    # 1. CONFIGURATION
-    
-    # PASTE YOUR OPENROUTER KEY HERE
+    # CONFIGURATION
     OPENROUTER_API_KEY = "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" 
-    
-    # MODEL SELECTION
-    # Note: "Grok 4.1" does not exist yet. Using Grok 2 (latest).
-    # If you want a purely free model, try: "google/gemini-2.0-flash-exp:free"
     MODEL_NAME = "x-ai/grok-2-1212" 
-    
-    # MongoDB Connection Details
     MONGO_URI = "mongodb://localhost:27017/"
-    DB_NAME = "openrouter_summaries"  # Renamed DB to reflect change
+    DB_NAME = "openrouter_summaries"
     COLLECTION_NAME = "processed_text"
-    
-    # Input File Details
-    INPUT_FILE = "input_data.txt"
-    DELIMITER = "###" 
+    INPUT_FILE = "input_data.txt"  # Input .txt file
+    OUTPUT_FILE = "summaries_output.txt"  # Output .txt file
+    DELIMITER = "###"
+    SAVE_TO_MONGODB = False  # Set to True to enable MongoDB saving
 
     if OPENROUTER_API_KEY == "sk-or-...":
-         print("⚠️  Please edit the file and insert your OpenRouter API Key.")
+        print("⚠️  Please edit the file and insert your OpenRouter API Key.")
     else:
         # Initialize OpenRouter Client
         client = OpenAI(
@@ -83,32 +95,33 @@ if __name__ == "__main__":
             api_key=OPENROUTER_API_KEY,
         )
 
-        # 2. CONNECT TO DB
-        print("🔌 Connecting to MongoDB...")
-        collection = get_mongo_collection(MONGO_URI, DB_NAME, COLLECTION_NAME)
-
-        if collection is not None:
-            print("✅ Connected to MongoDB.")
-
-            # 3. READ FILE
-            print(f"📂 Reading {INPUT_FILE}...")
-            text_parts = read_file_parts(INPUT_FILE, DELIMITER)
-            
-            if not text_parts:
-                print("⚠️ No text parts found. Check your input file and delimiter.")
+        # Optionally connect to MongoDB
+        collection = None
+        if SAVE_TO_MONGODB:
+            print("🔌 Connecting to MongoDB...")
+            collection = get_mongo_collection(MONGO_URI, DB_NAME, COLLECTION_NAME)
+            if collection is not None:
+                print("✅ Connected to MongoDB.")
             else:
-                print(f"found {len(text_parts)} parts to process.")
+                print("🛑 Could not connect to database. MongoDB saving will be skipped.")
 
-                # 4. PROCESS LOOP
-                for i, part in enumerate(text_parts, 1):
-                    print(f"\n--- Processing Part {i}/{len(text_parts)} ---")
-                    print(f"Original Text Length: {len(part)} chars")
-                    
-                    # Generate Summary
-                    print(f"   ... Summarizing using {MODEL_NAME}")
-                    summary = summarize_text(part, client, MODEL_NAME)
-                    
-                    # Create Data Object
+        # Read input file
+        print(f"📂 Reading {INPUT_FILE}...")
+        text_parts = read_file_parts(INPUT_FILE, DELIMITER)
+        if not text_parts:
+            print("⚠️ No text parts found. Check your input file and delimiter.")
+        else:
+            print(f"Found {len(text_parts)} parts to process.")
+            summaries = []
+            for i, part in enumerate(text_parts, 1):
+                print(f"\n--- Processing Part {i}/{len(text_parts)} ---")
+                print(f"Original Text Length: {len(part)} chars")
+                print(f"   ... Summarizing using {MODEL_NAME}")
+                summary = summarize_text(part, client, MODEL_NAME)
+                summaries.append(summary)
+
+                # Optionally save to MongoDB
+                if SAVE_TO_MONGODB and collection is not None:
                     doc = {
                         "part_id": i,
                         "original_text": part,
@@ -117,17 +130,16 @@ if __name__ == "__main__":
                         "processed_at": datetime.datetime.utcnow(),
                         "source_file": INPUT_FILE
                     }
-
-                    # Save to MongoDB
                     try:
                         result = collection.insert_one(doc)
                         print(f"   ✅ Saved to MongoDB! (ID: {result.inserted_id})")
-                        # Preview first 100 chars
-                        preview = summary[:100].replace('\n', ' ')
-                        print(f"   Summary Preview: {preview}...")
                     except Exception as e:
                         print(f"   ❌ Failed to save to DB: {e}")
+                # Preview first 100 chars
+                preview = summary[:100].replace('\n', ' ')
+                print(f"   Summary Preview: {preview}...")
 
-                print("\n🎉 All parts processed successfully!")
-        else:
-            print("🛑 Process aborted: Could not connect to database.")
+            # Write all summaries to output .txt file
+            write_summaries_to_txt(summaries, OUTPUT_FILE)
+            print(f"\n📝 All summaries written to {OUTPUT_FILE}")
+            print("\n🎉 All parts processed successfully!")

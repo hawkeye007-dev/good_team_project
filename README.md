@@ -1,195 +1,416 @@
-# 📚 Reading List - AI-Powered Article Summarizer
+# 🔍 Universal Async Web Scraper
 
-A modern, production-ready web application that automatically scrapes URLs, summarizes articles using AI, and intelligently categorizes content by topics.
+A powerful, AI-powered web scraper that extracts content from any website and provides intelligent summaries using Google's Gemini AI. Built with FastAPI, Celery, Redis, and Next.js.
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green?logo=fastapi)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![Redis](https://img.shields.io/badge/Redis-7+-red?logo=redis)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## ✨ Features
 
-- **🔗 URL Scraping**: Extract clean text content from any webpage
-- **🤖 AI Summarization**: Generate concise 2-3 sentence summaries powered by OpenRouter's Kimi K2 model
-- **🏷️ Auto Topic Classification**: Intelligently categorize articles with relevant tags
-- **📊 Dashboard Stats**: Track your reading progress with real-time statistics
-- **🔍 Smart Filtering**: Filter articles by automatically detected topics
-- **📱 Fully Responsive**: Optimized for desktop, tablet, and mobile devices
-- **⚡ Async Processing**: Non-blocking URL processing with real-time status updates
-- **🎨 Beautiful UI**: Modern, accessible interface built with Tailwind CSS
-- **⚙️ Production-Ready**: Comprehensive error handling, validation, and optimized performance
+- **🌐 Universal Scraping** - Works with any website (e-commerce, Wikipedia, news, blogs, etc.)
+- **🤖 AI Summarization** - Uses Google Gemini AI to generate intelligent summaries
+- **💰 Price Detection** - Automatically detects and extracts prices from product pages
+- **🖼️ Image Extraction** - Extracts main images from webpages
+- **⚡ Async Processing** - Background task processing with Celery + Redis
+- **🎨 Modern UI** - Clean Next.js frontend for easy interaction
+- **📡 REST API** - Full-featured API for integration with other applications
 
-## 🚀 Getting Started
+## 📸 What It Does
+
+| Input | Output |
+|-------|--------|
+| Amazon product URL | Price, product summary, images, buying suggestions |
+| Wikipedia article | Comprehensive summary of the article |
+| E-commerce site | Product details, prices, specifications |
+| Any webpage | AI-generated summary, key information, images |
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Next.js UI    │────▶│  FastAPI Server │────▶│   Gemini AI     │
+│  (Frontend)     │     │   (Backend)     │     │   (Summaries)   │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+            ┌───────────────┐         ┌───────────────┐
+            │    Celery     │◀───────▶│    Redis      │
+            │   (Workers)   │         │   (Broker)    │
+            └───────────────┘         └───────────────┘
+```
+
+## 📁 Project Structure
+
+```
+universal-web-scraper/
+├── backend/
+│   ├── main.py              # FastAPI application & API endpoints
+│   ├── scraper.py           # Web scraping logic (httpx + BeautifulSoup)
+│   ├── gemini_client.py     # Gemini AI integration
+│   ├── celery_app.py        # Celery configuration
+│   ├── tasks.py             # Background task definitions
+│   └── requirements.txt     # Python dependencies
+├── frontend/
+│   ├── pages/
+│   │   ├── index.js         # Main UI component
+│   │   └── _app.js          # Next.js app wrapper
+│   ├── package.json         # Node.js dependencies
+│   └── next.config.js       # Next.js configuration
+├── docker-compose.yml       # Redis container setup
+├── SETUP.md                 # Detailed setup instructions
+└── README.md                # This file
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
-- OpenRouter API key (get one free at [openrouter.ai](https://openrouter.ai))
+- **Python 3.10+** (3.11 or 3.12 recommended)
+- **Node.js 18+**
+- **Docker** (for Redis) OR Redis installed locally
+- **Google Gemini API Key** ([Get one free](https://makersuite.google.com/app/apikey))
 
-### Installation
+### 1️⃣ Clone the Repository
 
-1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd url_scrapper
+git clone https://github.com/yourusername/universal-web-scraper.git
+cd universal-web-scraper
 ```
 
-2. **Install dependencies**
+### 2️⃣ Start Redis
+
+**Option A: Using Docker (Recommended)**
 ```bash
+docker-compose up -d
+```
+
+**Option B: Local Redis**
+- Install Redis from [redis.io](https://redis.io/download)
+- Start Redis server on port 6379
+
+### 3️⃣ Setup Backend
+
+**Windows (PowerShell):**
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+**macOS/Linux:**
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 4️⃣ Set Environment Variables
+
+**Windows (PowerShell):**
+```powershell
+$env:GEMINI_API_KEY = "your-gemini-api-key-here"
+```
+
+**macOS/Linux:**
+```bash
+export GEMINI_API_KEY="your-gemini-api-key-here"
+```
+
+### 5️⃣ Start the Backend Server
+
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
+
+### 6️⃣ Start Celery Worker (New Terminal)
+
+**Windows:**
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+$env:GEMINI_API_KEY = "your-gemini-api-key-here"
+celery -A celery_app worker --loglevel=info --pool=solo
+```
+
+**macOS/Linux:**
+```bash
+cd backend
+source .venv/bin/activate
+export GEMINI_API_KEY="your-gemini-api-key-here"
+celery -A celery_app worker --loglevel=info
+```
+
+### 7️⃣ Setup & Start Frontend (New Terminal)
+
+```bash
+cd frontend
 npm install
-```
-
-3. **Set up environment variables**
-
-Create a `.env.local` file in the root directory:
-```env
-NEXT_PUBLIC_OPENROUTER_API_KEY=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
-```
-
-4. **Run the development server**
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+### 8️⃣ Open the App
 
-## 📖 How It Works
-
-1. **Enter a URL** → Paste any article URL into the input field
-2. **Content Extraction** → The app fetches and extracts clean text from the webpage
-3. **AI Processing** → Content is sent to OpenRouter's Kimi K2 model
-4. **Smart Analysis** → AI generates a summary and identifies relevant topics
-5. **View Results** → See the summary, topics, and read the full article
-
-## 🏗️ Project Structure
-
-```
-app/
-├── api/
-│   ├── scrape-url/route.ts      # Content extraction endpoint
-│   └── summarize/route.ts        # AI summarization endpoint
-├── components/
-│   ├── ui/common.tsx             # Reusable UI components
-│   ├── UrlInput.tsx              # URL input form
-│   └── ReadingListItem.tsx       # List display component
-├── hooks/
-│   └── useReadingList.ts         # Custom React hook
-├── types/
-│   └── reading-list.ts           # TypeScript definitions
-├── globals.css                   # Global styling
-├── layout.tsx                    # Root layout
-└── page.tsx                      # Main page
-```
-
-## 🔌 API Endpoints
-
-### POST `/api/scrape-url`
-Extracts text content from a webpage.
-
-**Request:**
-```json
-{
-  "url": "https://example.com/article"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "content": "Extracted article text..."
-}
-```
-
-### POST `/api/summarize`
-Generates summaries and identifies topics.
-
-**Request:**
-```json
-{
-  "content": "Full article text...",
-  "url": "https://example.com/article"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "summary": "A concise 2-3 sentence summary...",
-  "topics": ["technology", "ai", "productivity"]
-}
-```
-
-## 🛠️ Available Commands
-
-```bash
-# Development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-```
-
-## 🎯 Tech Stack
-
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript 5
-- **Styling**: Tailwind CSS 4
-- **AI Model**: OpenRouter (GPT-3.5 Turbo)
-- **State Management**: React Hooks
-- **API**: Next.js API Routes
-
-## 📊 Performance Features
-
-- **Content Limit**: 10,000 characters max (optimized for API efficiency)
-- **Request Timeout**: 10-second limit to prevent hanging
-- **Error Recovery**: Graceful error handling with user-friendly messages
-- **Async Processing**: Non-blocking operations with real-time feedback
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-
-## 🔒 Error Handling
-
-The application handles:
-- ❌ Invalid URL formats
-- ❌ Network timeouts
-- ❌ API failures
-- ❌ Empty content
-- ❌ Duplicate URLs
-- ❌ Invalid input
-
-## 🚀 Future Enhancements
-
-- Database integration (PostgreSQL/MongoDB)
-- User authentication and accounts
-- Reading time estimates
-- Search functionality
-- Export reading lists (PDF, Markdown)
-- Browser extension
-- Mobile app
-- Dark mode toggle
-- Offline mode with service workers
-- Advanced filtering and sorting
-
-## 📝 License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to submit issues and pull requests.
-
-## 📞 Support
-
-For issues, questions, or suggestions, please open an issue on GitHub.
+🎉 Visit **http://localhost:3000** in your browser!
 
 ---
 
-**Made with ❤️ using Next.js and AI**
+## 📡 API Reference
 
-## Deploy on Vercel
+### Base URL
+```
+http://localhost:8000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/scrape` | Synchronous scraping (waits for results) |
+| `POST` | `/scrape/async` | Queue scraping task (returns task_id) |
+| `GET` | `/task/{task_id}` | Check status of background task |
+| `GET` | `/health` | Health check endpoint |
+
+### POST `/scrape`
+
+Synchronous scraping - waits for results.
+
+**Request:**
+```json
+{
+  "url": "https://example.com"
+}
+```
+or multiple URLs:
+```json
+{
+  "urls": ["https://example1.com", "https://example2.com"]
+}
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "url": "https://example.com",
+      "title": "Page Title",
+      "description": "Meta description",
+      "price": "$29.99",
+      "images": ["https://example.com/image1.jpg"],
+      "summary": "AI-generated summary of the page...",
+      "suggestions": [
+        "Price detected: $29.99 — consider comparing with other sellers."
+      ]
+    }
+  ]
+}
+```
+
+### POST `/scrape/async`
+
+Queue scraping task for background processing.
+
+**Request:**
+```json
+{
+  "urls": ["https://example.com"]
+}
+```
+
+**Response:**
+```json
+{
+  "task_id": "abc123-def456-...",
+  "status": "queued"
+}
+```
+
+### GET `/task/{task_id}`
+
+Check status of a background task.
+
+**Response (Pending):**
+```json
+{
+  "task_id": "abc123-...",
+  "status": "pending"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "task_id": "abc123-...",
+  "status": "success",
+  "result": {
+    "results": [...]
+  }
+}
+```
+
+**Response (Failed):**
+```json
+{
+  "task_id": "abc123-...",
+  "status": "failed",
+  "error": "Error message"
+}
+```
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GEMINI_API_KEY` | Google Gemini API key | Yes* | None |
+| `REDIS_URL` | Redis connection URL | No | `redis://localhost:6379/0` |
+| `PORT` | Backend server port | No | `8000` |
+
+*Without a Gemini API key, the app falls back to a simple extractive summarizer.
+
+### Frontend Configuration
+
+Create `.env.local` in the frontend folder:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+---
+
+## 📝 Usage Examples
+
+### cURL Examples
+
+**Scrape a Wikipedia page:**
+```bash
+curl -X POST "http://localhost:8000/scrape" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://en.wikipedia.org/wiki/Artificial_intelligence"}'
+```
+
+**Scrape an e-commerce page:**
+```bash
+curl -X POST "http://localhost:8000/scrape" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://webscraper.io/test-sites/e-commerce/allinone"}'
+```
+
+**Async scrape with task polling:**
+```bash
+# Queue the task
+curl -X POST "http://localhost:8000/scrape/async" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+
+# Check status (use the task_id from response)
+curl "http://localhost:8000/task/YOUR_TASK_ID"
+```
+
+### Python Example
+
+```python
+import requests
+
+# Sync scrape
+response = requests.post(
+    "http://localhost:8000/scrape",
+    json={"url": "https://en.wikipedia.org/wiki/Python_(programming_language)"}
+)
+result = response.json()
+print(result["results"][0]["summary"])
+```
+
+### JavaScript Example
+
+```javascript
+const response = await fetch("http://localhost:8000/scrape", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ url: "https://example.com" })
+});
+const data = await response.json();
+console.log(data.results[0].summary);
+```
+
+---
+
+## ⚠️ Limitations & Notes
+
+1. **JavaScript-rendered content**: Some websites load content via JavaScript. This scraper fetches the initial HTML, so dynamically loaded content may not be captured.
+
+2. **Rate limiting**: The scraper doesn't implement rate limiting. Be respectful of websites' resources.
+
+3. **robots.txt**: This scraper doesn't check robots.txt. For production use, consider respecting robots.txt directives.
+
+4. **Price detection**: Uses heuristic patterns to detect prices. May not work for all formats or currencies.
+
+5. **Gemini API quotas**: The free tier of Gemini API has rate limits. For heavy usage, consider upgrading your API plan.
+
+---
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| "Cannot connect to Redis" | Ensure Redis is running: `docker-compose up -d` |
+| "Gemini API returns None" | Check API key is correct and not over quota |
+| "Celery tasks not found" | Restart Celery worker from `backend` directory |
+| Windows: Pool error | Always use `--pool=solo` with Celery on Windows |
+| Frontend can't connect | Check backend is running on port 8000 |
+
+### Checking Service Status
+
+```bash
+# Check Redis
+docker ps | grep redis
+
+# Check backend
+curl http://localhost:8000/health
+
+# Check frontend
+curl http://localhost:3000
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [Google Gemini](https://deepmind.google/technologies/gemini/) - AI model for summarization
+- [Celery](https://celeryproject.org/) - Distributed task queue
+- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) - HTML parsing
+- [Next.js](https://nextjs.org/) - React framework
+
+---
+
+Made with ❤️ for the developer community
